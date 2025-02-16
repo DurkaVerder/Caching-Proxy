@@ -1,12 +1,19 @@
 package cache
 
 import (
+	"net/http"
 	"sync"
 	"time"
 )
 
+type CachedResponse struct {
+	Status  int
+	Headers http.Header
+	Body    []byte
+}
+
 type Item struct {
-	Value      any
+	Value      CachedResponse
 	Created    time.Time
 	Expiration int64
 }
@@ -31,7 +38,7 @@ func NewCache(defaultExpiration, cleanupInterval time.Duration) *Cache {
 	return cache
 }
 
-func (c *Cache) Set(key string, value any, duration time.Duration) {
+func (c *Cache) Set(key string, value CachedResponse, duration time.Duration) {
 	var expiration int64
 
 	if duration == 0 {
@@ -51,18 +58,18 @@ func (c *Cache) Set(key string, value any, duration time.Duration) {
 	c.Unlock()
 }
 
-func (c *Cache) Get(key string) (any, bool) {
+func (c *Cache) Get(key string) (CachedResponse, bool) {
 	c.RLock()
 	item, found := c.items[key]
 	c.RUnlock()
 
 	if !found {
-		return nil, false
+		return CachedResponse{}, false
 	}
 
 	if item.Expiration > 0 {
 		if time.Now().UnixNano() > item.Expiration {
-			return nil, false
+			return CachedResponse{}, false
 		}
 	}
 
@@ -114,8 +121,6 @@ func (c *Cache) clearItems(keys []string) {
 
 	c.Unlock()
 }
-
-
 
 func (c *Cache) FlushAll() {
 	c.Lock()

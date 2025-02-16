@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Service interface {
@@ -77,7 +78,11 @@ func (s *ServiceManager) cacheHandler(w http.ResponseWriter, r *http.Request) {
 	if method == http.MethodGet {
 		if value, found := s.cache.Get(key); found {
 			w.Header().Add("X-CACHE", "HIT")
-			w.Write(value.([]byte))
+			for k, v := range value.Headers {
+				w.Header()[k] = v
+			}
+			w.WriteHeader(value.Status)
+			w.Write(value.Body)
 			return
 		}
 	}
@@ -95,7 +100,11 @@ func (s *ServiceManager) cacheHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if method == http.MethodGet {
-		s.cache.Set(key, respBody, 0)
+		s.cache.Set(key, cache.CachedResponse{
+			Headers: resp.Header,
+			Status:  resp.StatusCode,
+			Body:    respBody,
+		}, 0)
 	}
 
 	for k, v := range resp.Header {
@@ -124,7 +133,9 @@ func (s *ServiceManager) requestToServer(method, targetURL, query string, body [
 
 	req.URL.RawQuery = query
 
-	client := http.Client{}
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
