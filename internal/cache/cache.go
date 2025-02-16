@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -22,14 +23,16 @@ type Cache struct {
 	sync.RWMutex
 	defaultExpiration time.Duration
 	cleanupInterval   time.Duration
+	maxSize           int64
 	items             map[string]Item
 }
 
-func NewCache(defaultExpiration, cleanupInterval time.Duration) *Cache {
+func NewCache(defaultExpiration, cleanupInterval time.Duration, maxSize int64) *Cache {
 	cache := &Cache{
 		defaultExpiration: defaultExpiration,
 		cleanupInterval:   cleanupInterval,
 		items:             make(map[string]Item),
+		maxSize:           maxSize,
 	}
 	if cleanupInterval > 0 {
 		cache.runCleaner()
@@ -50,6 +53,10 @@ func (c *Cache) Set(key string, value CachedResponse, duration time.Duration) {
 	}
 
 	c.Lock()
+	if len(c.items) >= int(c.maxSize) {
+		c.deleteRandomItem()
+	}
+
 	c.items[key] = Item{
 		Value:      value,
 		Created:    time.Now(),
@@ -122,8 +129,16 @@ func (c *Cache) clearItems(keys []string) {
 	c.Unlock()
 }
 
-func (c *Cache) FlushAll() {
-	c.Lock()
-	c.items = make(map[string]Item)
-	c.Unlock()
+func (c *Cache) deleteRandomItem() {
+	if len(c.items) == 0 {
+		return
+	}
+
+	keys := make([]string, 0, len(c.items))
+	for k := range c.items {
+		keys = append(keys, k)
+	}
+
+	randomKey := keys[rand.Intn(len(keys))]
+	delete(c.items, randomKey)
 }
