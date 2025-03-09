@@ -1,36 +1,30 @@
 # Caching-Proxy
 
-## Description
+## Описание
 
-A caching proxy in Go that forwards requests to the target server and caches responses for GET requests.
+Кэширующий прокси на Go, который перенаправляет запросы на целевой сервер и кэширует ответы на GET-запросы.
 
-## Functionality
+## Функциональность
 
-- Accepts HTTP requests on the specified port.
+- Принимает HTTP-запросы на указанном порту.
+- Перенаправляет запросы на целевой сервер, заданный в аргументах.
+- Кэширует ответы на GET-запросы.
+- Возвращает кэшированные ответы при повторных запросах.
+- Поддерживает фоновую очистку устаревших данных из кэша.
 
-- Forwards requests to the target server specified in the arguments.
+## Установка
 
-- Caches responses for GET requests.
+1. Клонируйте репозиторий.
+2. Выполните `go mod tidy` для установки зависимостей.
+3. Запустите `./build.sh` для сборки исполняемого файла.
 
-- Returns cached responses for repeated requests.
+## Использование
 
-- Supports background clearing of stale data from the cache.
-
-## Installation
-
-- Clone the repository.
-
-- Run `go mod tidy` to install dependencies.
-
-- Run `./build.sh` to build the executable.
-
-## Usage
-
-Start the proxy server by specifying the port and target server:
+Запустите прокси-сервер, указав порт и целевой сервер:
 
     ./caching-proxy --port 8080 --origin https://api.example.com
 
-### Parameters: <br>
-`--port` : Port on which the proxy will work (for example, 8080).
+### Параметры: <br>
+`--port` : Порт, на котором будет работать прокси (например, 8080).
 
-`--origin` : Destination server URL (for example, https://api.example.com).
+`--origin` : URL целевого сервера (например, https://api.example.com).
